@@ -6,6 +6,13 @@
   box-sizing: border-box;
 }
 
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
 .table-container {
   max-width: 1200px;
   margin: 0 auto;
