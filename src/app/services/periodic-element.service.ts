@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { delay, Observable, of } from 'rxjs';
 import { ELEMENT_DATA, PeriodicElement } from '../models';
 
 @Injectable({
@@ -9,6 +9,6 @@ export class PeriodicElementService {
   constructor() {}
 
   getElements(): Observable<PeriodicElement[]> {
-    return of(ELEMENT_DATA);
+    return of(ELEMENT_DATA).pipe(delay(3000));
   }
 }

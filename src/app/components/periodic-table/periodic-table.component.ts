@@ -8,7 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { EditElementDialogComponent } from '../../dialogs';
 import { Subject } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { debounceTime, finalize, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-periodic-table',
@@ -28,6 +28,7 @@ export class PeriodicTableComponent implements OnInit {
   dataSource = new MatTableDataSource<PeriodicElement>();
   filterValue: string = '';
   private filterSubject = new Subject<string>();
+  isLoading = true;
 
   constructor(
     private elementService: PeriodicElementService,
@@ -36,9 +37,7 @@ export class PeriodicTableComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.elementService.getElements().subscribe((data) => {
-      this.dataSource.data = [...data];
-    });
+    this.loadElements();
 
     this.filterSubject.pipe(debounceTime(2000)).subscribe((filterValue) => {
       this.dataSource.filter = filterValue.trim().toLowerCase();
@@ -49,6 +48,17 @@ export class PeriodicTableComponent implements OnInit {
         });
       }
     });
+  }
+
+  private loadElements(): void {
+    this.isLoading = true;
+    this.elementService
+      .getElements()
+      .pipe(
+        tap((data) => (this.dataSource.data = data)),
+        finalize(() => (this.isLoading = false))
+      )
+      .subscribe();
   }
 
   public applyFilter(event: Event): void {
