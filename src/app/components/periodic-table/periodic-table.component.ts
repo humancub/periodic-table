@@ -7,8 +7,10 @@ import { MaterialModule } from '../../shared';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { EditElementDialogComponent } from '../../dialogs';
-import { Subject } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 import { debounceTime, finalize, tap } from 'rxjs/operators';
+import { RxState } from '@rx-angular/state';
+import { ProjectState } from '../../models';
 
 @Component({
   selector: 'app-periodic-table',
@@ -16,28 +18,35 @@ import { debounceTime, finalize, tap } from 'rxjs/operators';
   styleUrls: ['./periodic-table.component.scss'],
   standalone: true,
   imports: [CommonModule, MaterialModule],
+  providers: [RxState],
 })
 export class PeriodicTableComponent implements OnInit {
-  displayedColumns: string[] = [
+  public displayedColumns: string[] = [
     'position',
     'name',
     'weight',
     'symbol',
     'actions',
   ];
-  dataSource = new MatTableDataSource<PeriodicElement>();
-  filterValue: string = '';
+  public dataSource = new MatTableDataSource<PeriodicElement>();
   private filterSubject = new Subject<string>();
-  isLoading = true;
+  public isLoading$: Observable<boolean>;
+  public elements$: Observable<PeriodicElement[]>;
 
   constructor(
     private elementService: PeriodicElementService,
     public dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {}
+    private snackBar: MatSnackBar,
+    private state: RxState<ProjectState>
+  ) {
+    this.isLoading$ = this.state.select('isLoading');
+    this.elements$ = this.state.select('elements');
+  }
 
   ngOnInit(): void {
     this.loadElements();
+
+    this.isLoading$.subscribe((isLoading) => {});
 
     this.filterSubject.pipe(debounceTime(2000)).subscribe((filterValue) => {
       this.dataSource.filter = filterValue.trim().toLowerCase();
@@ -51,12 +60,15 @@ export class PeriodicTableComponent implements OnInit {
   }
 
   private loadElements(): void {
-    this.isLoading = true;
+    this.state.set({ isLoading: true });
     this.elementService
       .getElements()
       .pipe(
-        tap((data) => (this.dataSource.data = data)),
-        finalize(() => (this.isLoading = false))
+        tap((data) => {
+          this.state.set({ elements: data });
+          this.dataSource.data = data;
+        }),
+        finalize(() => this.state.set({ isLoading: false }))
       )
       .subscribe();
   }
